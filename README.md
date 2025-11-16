@@ -1,3 +1,7 @@
+# THIS CODE PROBABLY WONT WORK. IF U WANNA US THIS PROJECT, GO : https://github.com/parsherr/real-embed-builder-site
+
+
+
 # Discord Embed Builder <img src="https://raw.githubusercontent.com/parsherr/discord-embed-builder/refs/heads/main/assets/media/discord-embed-builder-logo-v2.png" alt="Discord Embed Builder" width="35"/>
 
 <div align="center">
