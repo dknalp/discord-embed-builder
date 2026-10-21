@@ -44,8 +44,9 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.58.3/addon/lint/lint.min.js"></script>
         <script src="/assets/libs/color-picker/color-picker.min.js"></script>
         <link rel="stylesheet" href="/assets/libs/color-picker/color-picker.min.css">
-        <script src="/assets/js/components.js"></script>
-        <script src="/assets/js/script.js"></script>
+        <script src="/assets/js/components.js" defer></script>
+        <script>const IMGBB_API_KEY = '<%= imgbbKey %>';</script>
+        <script src="/assets/js/script.js" defer></script>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     </head>
     <body class="gui emptyEmbed">
@@ -232,13 +233,13 @@
                 </div>
 
                 <div class="top item">
-                <div class="top item">
                     <div class="gui">
                         <div class="item content">
                             <p class="ttle">Message content</p>
                         </div>
                         <div class="edit">
                             <textarea class="editContent" placeholder="Message content" maxlength="2000" autocomplete="off"></textarea>
+                            <span class="charCount contentCharCount">0 / 2000</span>
                         </div>
                         <div class="item guiEmbedName ">
                             <span class="text">Embed 1</span>
@@ -300,6 +301,7 @@
                             </div>
                             <div class="edit">
                                 <textarea class="editDescription" placeholder="Embed description" maxlength="2048" autocomplete="off"></textarea>
+                                <span class="charCount descCharCount">0 / 2048</span>
                             </div>
                             <div class="item fields">
                                 <p class="ttle">Fields</p>

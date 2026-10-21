@@ -1,116 +1,165 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const { WebhookClient } = require('discord.js');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
 const app = express();
 
-// Rate limiting için değişkenler
-const webhookCooldowns = new Map();
-const COOLDOWN_SECONDS = 5;
+// ── Security headers ──────────────────────────────────────────────────────────
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: [
+                    "'self'",
+                    "'unsafe-inline'",   // builder.config.js inline scripts
+                    'cdn.jsdelivr.net',
+                    'cdnjs.cloudflare.com',
+                    'unpkg.com',
+                    'twemoji.maxcdn.com',
+                ],
+                styleSrc: [
+                    "'self'",
+                    "'unsafe-inline'",
+                    'cdn.jsdelivr.net',
+                    'cdnjs.cloudflare.com',
+                ],
+                imgSrc: ["'self'", 'data:', 'https:'],
+                connectSrc: ["'self'"],
+                fontSrc: ["'self'", 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com'],
+            },
+        },
+    })
+);
 
-// Middleware
+// ── CORS ──────────────────────────────────────────────────────────────────────
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Static dosya yolları - Basitleştirilmiş hali
-app.use(express.static('public'));
-app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+const globalLimiter = rateLimit({
+    windowMs: 60 * 1000,  // 1 minute
+    max: 60,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please try again in a minute.' },
+});
 
-// View engine
+const webhookSendLimiter = rateLimit({
+    windowMs: 10 * 1000,  // 10 seconds
+    max: 2,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Please wait before sending another webhook message.' },
+});
+
+app.use(globalLimiter);
+
+// ── Body parsing ──────────────────────────────────────────────────────────────
+app.use(express.json({ limit: '50kb' }));
+app.use(express.urlencoded({ extended: true, limit: '50kb' }));
+
+// ── Static assets ─────────────────────────────────────────────────────────────
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ── View engine ───────────────────────────────────────────────────────────────
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Error handler
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Bir şeyler ters gitti!' });
-});
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const DISCORD_WEBHOOK_RE = /^https:\/\/discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
 
-// Ana sayfa
-app.get('/', (req, res) => {
+function isValidWebhookUrl(url) {
+    if (typeof url !== 'string') return false;
+    return DISCORD_WEBHOOK_RE.test(url.split('?')[0]);
+}
+
+// ── Routes ────────────────────────────────────────────────────────────────────
+
+// Home
+app.get('/', (req, res, next) => {
     try {
-        res.render('index');
-    } catch (error) {
-        console.error('Render hatası:', error);
-        res.status(500).send('Sayfa yüklenirken bir hata oluştu');
+        res.render('index', { imgbbKey: process.env.IMGBB_API_KEY || '' });
+    } catch (err) {
+        next(err);
     }
 });
 
-// Webhook bilgilerini getir
-app.get('/api/webhook-info', async (req, res) => {
+// GET /api/webhook-info — fetch webhook metadata (name, avatar) for the preview
+app.get('/api/webhook-info', async (req, res, next) => {
     try {
         const { url } = req.query;
-        
+
         if (!url) {
-            return res.status(400).json({ error: 'Webhook URL required' });
+            return res.status(400).json({ error: 'Webhook URL is required.' });
+        }
+        if (!isValidWebhookUrl(url)) {
+            return res.status(400).json({ error: 'Invalid Discord webhook URL.' });
         }
 
-        // Webhook bilgilerini al
-        const response = await axios.get(url);
-        
+        const response = await axios.get(url, { timeout: 5000 });
+
         if (!response.data) {
-            return res.status(400).json({ error: 'Geçersiz webhook URL' });
+            return res.status(400).json({ error: 'Invalid webhook response.' });
         }
 
-        // Sadece gerekli bilgileri gönder
+        const { id, name, avatar, channel_id, guild_id } = response.data;
         res.json({
-            name: response.data.name,
-            avatar_url: response.data.avatar ? `https://cdn.discordapp.com/avatars/${response.data.id}/${response.data.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png',
-            channel_id: response.data.channel_id,
-            guild_id: response.data.guild_id
+            name,
+            avatar_url: avatar
+                ? `https://cdn.discordapp.com/avatars/${id}/${avatar}.png`
+                : 'https://cdn.discordapp.com/embed/avatars/0.png',
+            channel_id,
+            guild_id,
         });
-    } catch (error) {
-        console.error('Webhook bilgi hatası:', error);
-        res.status(500).json({ error: 'Webhook bilgileri alınamadı' });
+    } catch (err) {
+        next(err);
     }
 });
 
-// Webhook'a embed gönder
-app.post('/api/send-webhook', async (req, res) => {
+// POST /api/send-webhook — send an embed to a Discord webhook
+app.post('/api/send-webhook', webhookSendLimiter, async (req, res, next) => {
     try {
         const { url, embedData } = req.body;
 
         if (!url) {
-            return res.status(400).json({ error: 'Webhook URL gerekli' });
+            return res.status(400).json({ error: 'Webhook URL is required.' });
+        }
+        if (!isValidWebhookUrl(url)) {
+            return res.status(400).json({ error: 'Invalid Discord webhook URL.' });
+        }
+        if (!embedData || typeof embedData !== 'object') {
+            return res.status(400).json({ error: 'embedData must be an object.' });
         }
 
-        // Cooldown kontrolü
-        const now = Date.now();
-        const lastUsed = webhookCooldowns.get(url);
-        
-        if (lastUsed) {
-            const timeElapsed = now - lastUsed;
-            const timeRemaining = (COOLDOWN_SECONDS * 1000) - timeElapsed;
-            
-            if (timeRemaining > 0) {
-                return res.status(429).json({
-                    error: 'Please wait 5 seconds - Rate limit exceeded',
-                    message: `Lütfen ${Math.ceil(timeRemaining / 1000)} saniye bekleyin`,
-                    retryAfter: timeRemaining
-                });
-            }
-        }
-
-        // Webhook gönderme işlemi
-        const webhookClient = new WebhookClient({ url });
-        await webhookClient.send(embedData);
-
-        // Cooldown güncelleme
-        webhookCooldowns.set(url, now);
-        setTimeout(() => webhookCooldowns.delete(url), COOLDOWN_SECONDS * 1000);
+        await axios.post(url, embedData, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 10000,
+        });
 
         res.json({ success: true });
-    } catch (error) {
-        console.error('Webhook gönderme hatası:', error);
-        res.status(500).json({ error: error.message });
+    } catch (err) {
+        if (err.response) {
+            // Discord returned an error
+            return res.status(err.response.status).json({
+                error: err.response.data?.message || 'Discord rejected the webhook.',
+            });
+        }
+        next(err);
     }
 });
 
+// ── Error handler (must be last) ──────────────────────────────────────────────
+app.use((err, req, res, next) => {  // eslint-disable-line no-unused-vars
+    console.error(err.stack);
+    res.status(500).json({ error: 'Internal server error.' });
+});
+
+// ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server http://localhost:${PORT} adresinde çalışıyor`);
-}); 
+    console.log(`Discord Embed Builder running at http://localhost:${PORT}`);
+});

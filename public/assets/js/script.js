@@ -1,6 +1,5 @@
 window.options ??= {};
 window.inIframe ??= top !== self;
-mainHost = "https://setscript.com";
 
 let params = new URLSearchParams(location.search),
     hasParam = param => params.get(param) !== null,
@@ -23,7 +22,6 @@ let params = new URLSearchParams(location.search),
     hidePreview = localStorage.getItem('hidepreview') || hasParam('hidepreview') || options.hidePreview,
     hideMenu = localStorage.getItem('hideMenu') || hasParam('hidemenu') || options.hideMenu,
     sourceOption = localStorage.getItem('sourceOption') || hasParam('sourceoption') || options.sourceOption,
-    // sourceInMenu = localStorage.getItem('sourceInMenu') || hasParam('sourceInMenu') || options.sourceInMenu || top.location.host === mainHost,
     validationError, activeFields, lastActiveGuiEmbedIndex = -1, lastGuiJson, colNum = 1, num = 0;
 
 const guiEmbedIndex = guiEl => {
@@ -576,6 +574,11 @@ addEventListener('DOMContentLoaded', () => {
         for (const child of Array.from(guiFragment.childNodes)) {
             if (child.classList?.[1] === 'content')
                 gui.insertBefore(gui.appendChild(child.cloneNode(true)), gui.appendChild(child.nextElementSibling.cloneNode(true))).nextElementSibling.firstElementChild.value = object.content || '';
+            {
+                const contentEl = gui.querySelector('.editContent');
+                const cc = contentEl?.closest('.edit')?.querySelector('.contentCharCount');
+                if (cc) cc.textContent = (contentEl.value.length) + ' / 2000';
+            }
             else if (child.classList?.[1] === 'guiEmbedName') {
                 for (const [i, embed] of (object.embeds.length ? object.embeds : [{}]).entries()) {
                     const guiEmbedName = gui.appendChild(child.cloneNode(true))
@@ -608,7 +611,12 @@ addEventListener('DOMContentLoaded', () => {
                                     row.querySelector('.editTitle').value = embed?.title || '';
                                     break;
                                 case 'description':
-                                    edit.querySelector('.editDescription').value = embed?.description || '';
+                                    const descEl = edit.querySelector('.editDescription');
+                                    descEl.value = embed?.description || '';
+                                    {
+                                        const dc = edit.querySelector('.descCharCount');
+                                        if (dc) dc.textContent = descEl.value.length + ' / 2048';
+                                    }
                                     break;
                                 case 'thumbnail':
                                     const thumbnailURL = embed?.thumbnail?.url || '';
@@ -773,7 +781,6 @@ addEventListener('DOMContentLoaded', () => {
                     const embedObj = jsonObject.embeds[index] ??= {};
 
                     if (field) {
-                        console.log(field)
                         const fieldIndex = Array.from(fields.children).indexOf(field);
                         const jsonField = embedObj.fields[fieldIndex];
                         const embedFields = document.querySelectorAll('.container>.embed')[index]?.querySelector('.embedFields');
@@ -789,6 +796,10 @@ addEventListener('DOMContentLoaded', () => {
                             case 'editContent':
                                 jsonObject.content = value;
                                 buildEmbed({ only: 'content' });
+                                {
+                                    const cc = el.target.closest('.edit')?.querySelector('.contentCharCount');
+                                    if (cc) cc.textContent = value.length + ' / 2000';
+                                }
                                 break;
                             case 'editTitle':
                                 embedObj.title = value;
@@ -807,6 +818,10 @@ addEventListener('DOMContentLoaded', () => {
                                 break;
                             case 'editDescription': embedObj.description = value;
                                 buildEmbed({ only: 'embedDescription', index: guiEmbedIndex(el.target) });
+                                {
+                                    const dc = el.target.closest('.edit')?.querySelector('.descCharCount');
+                                    if (dc) dc.textContent = value.length + ' / 2048';
+                                }
                                 break;
                             case 'editThumbnailLink':
                                 embedObj.thumbnail ??= {}, embedObj.thumbnail.url = value;
@@ -872,7 +887,7 @@ addEventListener('DOMContentLoaded', () => {
                             return uploadError('File is too large. Maximum size is 32 MB.', browse, 5000);
 
                         formData.append("expiration", expiration); // Expire after 7 days. Discord caches files.
-                        formData.append("key", options.uploadKey || "93385e22b0619db73a5525140b13491c"); // Add your own key through the uploadKey option.
+                        formData.append("key", options.uploadKey || window.IMGBB_API_KEY || ""); // Key injected from server via IMGBB_API_KEY env var.
                         formData.append("image", el.target.files[0]);
                         // formData.append("name", ""); // Uses original file name if no "name" is not specified.
 
@@ -883,7 +898,6 @@ addEventListener('DOMContentLoaded', () => {
                             .then(res => {
                                 browse.classList.remove('loading');
                                 if (!res.success) {
-                                    console.log('Upload failed:', res.data?.error || res.error?.message || res);
                                     return uploadError(res.data?.error || res.error?.message || "Request failed. (Check dev-console)", browse);
                                 }
 
@@ -1430,7 +1444,7 @@ addEventListener('DOMContentLoaded', () => {
                 }, 1500);
             }
 
-        if (!navigator.clipboard?.writeText(jsonData).then(next).catch(err => console.log('Could not copy to clipboard: ' + err.message))) {
+        if (!navigator.clipboard?.writeText(jsonData).then(next).catch(() => {})) {
             const textarea = document.body.appendChild(document.createElement('textarea'));
 
             textarea.value = jsonData;
@@ -1445,7 +1459,6 @@ addEventListener('DOMContentLoaded', () => {
     // Webhook işlemleri için gerekli fonksiyonlar
     async function fetchWebhookInfo(url) {
         try {
-            console.log('Webhook bilgileri alınıyor...');
             const response = await fetch(`/api/webhook-info?url=${encodeURIComponent(url)}`);
             const data = await response.json();
             
@@ -1466,140 +1479,54 @@ addEventListener('DOMContentLoaded', () => {
 
             return data;
         } catch (error) {
-            console.error('Webhook bilgi hatası:', error);
-            throw new Error('Webhook bilgileri alınamadı');
+            throw new Error('Could not fetch webhook info.');
         }
     }
 
-    async function sendWebhook(url, embedData) {
+    // Send webhook button
+    document.getElementById('sendWebhook').addEventListener('click', async function() {
+        const webhookUrlInput = document.getElementById('webhookUrl');
+        const webhookStatus  = document.getElementById('webhookStatus');
+        const url = webhookUrlInput.value.trim();
+
+        if (!url) {
+            webhookStatus.textContent = 'Please enter a webhook URL.';
+            webhookStatus.style.color = '#f04747';
+            webhookStatus.style.display = 'block';
+            return;
+        }
+
         try {
-            console.log('Webhook gönderme başlatıldı');
-            console.log('URL:', url);
-            console.log('Embed Data:', embedData);
-
-            if (!url) {
-                throw new Error('Webhook URL required');
-            }
-
-            if (!embedData) {
-                throw new Error('Embed verisi required');
-            }
-
+            const embedData = window.json;
             const response = await fetch('/api/send-webhook', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    url: url,
-                    embedData: embedData
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url, embedData }),
             });
+            const result = await response.json();
 
-            const data = await response.json();
-            console.log('Webhook yanıtı:', data);
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Webhook gönderilemedi');
-            }
-
-            // Başarılı gönderim
-            const webhookStatus = document.getElementById('webhookStatus');
-            if (webhookStatus) {
-                webhookStatus.textContent = 'Webhook successfully sent!';
+            if (result.success) {
+                webhookStatus.textContent = 'Webhook sent successfully!';
                 webhookStatus.style.color = '#43b581';
-                webhookStatus.style.display = 'block';
-            }
-
-            return data;
-        } catch (error) {
-            console.error('Webhook sent error:', error);
-            const webhookStatus = document.getElementById('webhookStatus');
-            if (webhookStatus) {
-                webhookStatus.textContent = `Hata: ${error.message}`;
+            } else {
+                webhookStatus.textContent = result.error || 'Failed to send webhook.';
                 webhookStatus.style.color = '#f04747';
-                webhookStatus.style.display = 'block';
             }
-            throw error;
+            webhookStatus.style.display = 'block';
+        } catch (err) {
+            webhookStatus.textContent = 'Could not send webhook: ' + err.message;
+            webhookStatus.style.color = '#f04747';
+            webhookStatus.style.display = 'block';
         }
-    }
+    });
 
-    // Event Listener'ı ekle
-    window.onload = function() {
-        console.log('Sayfa yüklendi');
-        
-        const sendButton = document.getElementById('sendWebhook');
-        const webhookUrlInput = document.getElementById('webhookUrl');
-        const webhookStatus = document.getElementById('webhookStatus');
-
-        console.log('Send butonu:', sendButton);
-        console.log('Webhook URL input:', webhookUrlInput);
-        console.log('Webhook status:', webhookStatus);
-
-        if (sendButton) {
-            console.log('Send butonu bulundu, event listener ekleniyor');
-            
-            sendButton.addEventListener('click', async function() {
-                console.log('Send butonuna tıklandı');
-                
-                const url = webhookUrlInput.value.trim();
-                console.log('Webhook URL:', url);
-                
-                if (!url) {
-                    console.log('URL boş');
-                    webhookStatus.textContent = 'Webhook URL required';
-                    webhookStatus.style.display = 'block';
-                    webhookStatus.style.color = 'red';
-                    return;
-                }
-
-                try {
-                    console.log('Webhook data preparing...');
-                    const embedData = window.json;
-                    console.log('Embed verisi:', embedData);
-
-                    const response = await fetch('/api/send-webhook', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            url: url,
-                            embedData: embedData
-                        })
-                    });
-
-                    const result = await response.json();
-                    console.log('Webhook response:', result);
-                    
-                    if (result.success) {
-                        webhookStatus.textContent = 'Webhook successfully sent';
-                        webhookStatus.style.color = 'green';
-                    } else {
-                        webhookStatus.textContent = result.error || 'Webhook can not be sent';
-                        webhookStatus.style.color = 'red';
-                    }
-                    webhookStatus.style.display = 'block';
-                } catch (error) {
-                    console.error('Webhook sent error:', error);
-                    webhookStatus.textContent = 'Webhook Webhook can not be sent: ' + error.message;
-                    webhookStatus.style.color = 'red';
-                    webhookStatus.style.display = 'block';
-                }
-            });
-        } else {
-            console.error('Send butonu bulunamadı!');
-        }
-    };
-
-    // Webhook URL input event listener
+        // Webhook URL input event listener
     document.getElementById('webhookUrl').addEventListener('input', async function(e) {
         const url = e.target.value.trim();
         if (url && url.startsWith('https://discord.com/api/webhooks/')) {
             try {
                 await fetchWebhookInfo(url);
-            } catch (error) {
-                console.error('Webhook info error:', error);
+            } catch (_err) {
             }
         }
     });

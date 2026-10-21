@@ -6,88 +6,105 @@
   <p><img src="public/assets/media/discord-embed-builder-logo-v2.png" alt="Discord Embed Builder" width="50"/> Advanced embed message builder for Discord</p>
 </div>
 
-## 🚀 Features
+## Features
 
-- 🎨 Modern and user-friendly interface
-- 📝 Easy editing with Drag & Drop
-- 🌈 Customizable color options
-- 🔗 Webhook support
-- 📱 Mobile responsive design
-- 🌙 Dark theme support
-- ⚡ Fast and instant preview
-- 🔄 JSON import/export functionality
+- Visual GUI editor and raw JSON editor — stay in sync at all times
+- Pixel-accurate Discord dark-theme preview
+- Multi-embed support
+- Color picker with live embed border update
+- Image upload via [ImgBB](https://api.imgbb.com) (optional)
+- Emoji shortcode support (`:wave:`, `:thumbsup:`, ...)
+- Discord markdown rendering (bold, italic, code blocks, blockquotes, mentions, headings)
+- Shareable URLs with embed data encoded in the query string
+- Download embed as JSON / import from JSON
+- Webhook send with live username + avatar preview
+- Character count display on content and description fields
+- Rate-limited API endpoints with security headers
 
-## 🛠️ Technologies
+## Tech Stack
 
-- Node.js
-- Express.js
-- EJS Template Engine
-- Discord.js
-- TailwindCSS
-- FontAwesome
+- **Node.js** + **Express**
+- **EJS** template engine
+- **helmet** — security headers
+- **express-rate-limit** — per-IP rate limiting
+- **axios** — HTTP client
+- **CodeMirror 5** — JSON editor
+- **FontAwesome** — icons
 
-## 🌐 Demo
+## Setup
 
-[Live Demo](https://discord-embed-builder-parsherr.vercel.app/)
+### 1. Clone
 
-## 💻 Installation
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/parsherr/discord-embed-builder.git
-```
-
-2. Install dependencies:
-```bash
+git clone https://github.com/dknalp/discord-embed-builder.git
 cd discord-embed-builder
-npm install
 ```
 
-3. Start the development server:
+### 2. Install dependencies
+
 ```bash
-npm run dev
+bun install
 ```
 
-4. Open in your browser:
-```
-http://localhost:3000
+### 3. Configure environment
+
+```bash
+cp .env.example .env
 ```
 
-## 🔧 Configuration
+Edit `.env`:
 
-1. Create a `.env` file:
 ```env
+# Server port (default: 3000)
 PORT=3000
+
+# ImgBB API key for image uploads — get one at https://api.imgbb.com
+IMGBB_API_KEY=your_imgbb_api_key_here
 ```
 
-2. Store your Webhook URL securely and do not share it
+`IMGBB_API_KEY` is optional. Image upload is disabled when omitted.
 
-## 📝 Usage
+### 4. Run
 
-1. Create your embed message
-2. Enter your Webhook URL
-3. Click the "Send" button
-4. View your message in your Discord channel
+```bash
+# Development (auto-restart on changes)
+bun run dev
 
-## 🤝 Contributing
+# Production
+bun run start
+```
 
-1. Fork it
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: amazing feature added'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Usage
+
+1. Build your embed using the GUI tabs (Author, Title, Description, Fields, Image, Footer) or the JSON editor.
+2. Paste your Discord webhook URL in the top bar — the preview updates to show the real webhook name and avatar.
+3. Click **Send** to deliver the embed to your Discord channel.
+
+## Configuration (builder.config.js)
+
+`builder.config.js` is loaded before the main script and exposes an `options` object you can customise when embedding this tool in an iframe:
+
+| Option | Default | Description |
+|---|---|---|
+| `username` | `'Discord Bot'` | Default preview username |
+| `avatar` | Discord avatar 1 | Default preview avatar URL |
+| `useJsonEditor` | `false` | Start in JSON editor mode |
+| `reverseColumns` | `false` | Swap editor and preview sides |
+| `single` | `false` | Single-embed mode only |
+| `autoUpdateURL` | `false` | Continuously encode data into the URL |
+| `hideEditor` | `false` | Hide the editor panel |
+| `hidePreview` | `false` | Hide the preview panel |
+
+## Contributing
+
+1. Fork the repo
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit: `git commit -m "feat: my feature"`
+4. Push: `git push origin feature/my-feature`
 5. Open a Pull Request
 
-## 📄 License
+## License
 
-This project is licensed under the Apache-2.0 License. See the [LICENSE](LICENSE) file for details.
-
-## 👤 Developer
-
-**Parsherr**
-
-* GitHub: [@parsherr](https://github.com/parsherr)
-
-## ⭐ Support
-
-Don't forget to give a ⭐️ if you liked it!
-"# real-embed-builder-site" 
+Apache-2.0 — see [LICENSE](LICENSE).
