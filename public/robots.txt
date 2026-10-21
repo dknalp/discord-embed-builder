@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Sitemap: https://discord-embed-builder-parsherr.vercel.app/sitemap.xml
+
+# Discord Embed Builder - SEO Optimized
+# Anahtar Kelimeler: discord embed maker, discord embed builder, webhook builder
+# Discord mesaj oluşturucu ve webhook yönetimi aracı 

@@ -1,15 +1,9 @@
-# Discord Embed Builder <img src="https://raw.githubusercontent.com/parsherr/discord-embed-builder/refs/heads/main/assets/media/discord-embed-builder-logo-v2.png" alt="Discord Embed Builder" width="35"/>
+# Discord Embed Builder
 
 <div align="center">
-  <h1>Language</h1>
-  
- Türkçe | [English >>](https://github.com/parsherr/discord-embed-builder)
-</div>
+  <img src="public/assets/media/image.png" alt="Discord Embed Builder" width="600"/>
   <br/>
-<div align="center">
-  <img src="https://raw.githubusercontent.com/parsherr/discord-embed-builder/refs/heads/main/assets/media/image.png" alt="Discord Embed Builder" width="600"/>
-  <br/>
-  <p>Discord için gelişmiş embed mesaj oluşturucu</p>
+  <p><img src="public/assets/media/discord-embed-builder-logo-v2.png" alt="Discord Embed Builder" width="50"/> Discord için gelişmiş embed mesaj oluşturucu</p>
 </div>
 
 ## 🚀 Özellikler
@@ -34,7 +28,7 @@
 
 ## 🌐 Demo
 
-[Live Demo](https://discord-embed-builder-parsherr.vercel.app/)
+[Live Demo](#)
 
 ## 💻 Kurulum
 

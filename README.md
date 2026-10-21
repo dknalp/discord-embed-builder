@@ -1,19 +1,9 @@
-# THIS CODE PROBABLY WONT WORK. IF U WANNA US THIS PROJECT, GO : https://github.com/parsherr/real-embed-builder-site
-
-
-
-# Discord Embed Builder <img src="https://raw.githubusercontent.com/parsherr/discord-embed-builder/refs/heads/main/assets/media/discord-embed-builder-logo-v2.png" alt="Discord Embed Builder" width="35"/>
+# Discord Embed Builder
 
 <div align="center">
-  <h1>Language</h1>
-  
- English | [Türkçe >>](./README-TR.md)
-</div>
+  <img src="public/assets/media/image.png" alt="Discord Embed Builder" width="600"/>
   <br/>
-<div align="center">
-  <img src="https://raw.githubusercontent.com/parsherr/discord-embed-builder/refs/heads/main/assets/media/image.png" alt="Discord Embed Builder" width="600"/>
-  <br/>
-  <p>Advanced embed message builder for Discord</p>
+  <p><img src="public/assets/media/discord-embed-builder-logo-v2.png" alt="Discord Embed Builder" width="50"/> Advanced embed message builder for Discord</p>
 </div>
 
 ## 🚀 Features
@@ -38,7 +28,7 @@
 
 ## 🌐 Demo
 
-[Live Demo](http://us1.botcore.org:5016/)
+[Live Demo](https://discord-embed-builder-parsherr.vercel.app/)
 
 ## 💻 Installation
 
@@ -100,3 +90,4 @@ This project is licensed under the Apache-2.0 License. See the [LICENSE](LICENSE
 ## ⭐ Support
 
 Don't forget to give a ⭐️ if you liked it!
+"# real-embed-builder-site" 
