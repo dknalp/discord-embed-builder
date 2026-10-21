@@ -31,6 +31,7 @@ app.use(
                 imgSrc: ["'self'", 'data:', 'https:'],
                 connectSrc: ["'self'"],
                 fontSrc: ["'self'", 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com'],
+                scriptSrcAttr: ["'unsafe-inline'"],  // img onload= handlers in generated embed HTML
             },
         },
     })

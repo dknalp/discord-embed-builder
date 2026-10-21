@@ -574,11 +574,6 @@ addEventListener('DOMContentLoaded', () => {
         for (const child of Array.from(guiFragment.childNodes)) {
             if (child.classList?.[1] === 'content')
                 gui.insertBefore(gui.appendChild(child.cloneNode(true)), gui.appendChild(child.nextElementSibling.cloneNode(true))).nextElementSibling.firstElementChild.value = object.content || '';
-            {
-                const contentEl = gui.querySelector('.editContent');
-                const cc = contentEl?.closest('.edit')?.querySelector('.contentCharCount');
-                if (cc) cc.textContent = (contentEl.value.length) + ' / 2000';
-            }
             else if (child.classList?.[1] === 'guiEmbedName') {
                 for (const [i, embed] of (object.embeds.length ? object.embeds : [{}]).entries()) {
                     const guiEmbedName = gui.appendChild(child.cloneNode(true))
